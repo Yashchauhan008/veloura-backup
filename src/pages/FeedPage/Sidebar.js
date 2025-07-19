@@ -92,16 +92,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
             {/* Navigation Section */}
             <div className="flex-1 px-3 py-3">
-              {/* All Types Header with smaller colored icon */}
+              {/* All Types Header with smaller colored icon
               <div className="flex items-center gap-3 px-3 py-3 mx-2 mb-2">
                 <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
                   <FiHome size={12} className="text-white" />
                 </div>
                 <span className="text-xs font-medium text-gray-300">All Types</span>
-              </div>
+              </div> */}
 
-              {/* Dotted separator line */}
-              <div className="mx-3 mb-3 border-t border-dotted border-gray-600/50"></div>
+             
 
               {/* Navigation Items */}
               <nav className="space-y-1">
