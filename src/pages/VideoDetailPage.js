@@ -112,10 +112,10 @@ const VideoDetailPage = () => {
                   <FiPlay />
                   Play
                 </button>
-                <button className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors">
+                {/* <button className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-700/50 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors">
                   <FiPlus />
                   My List
-                </button>
+                </button> */}
               </div>
             </motion.div>
           </div>
