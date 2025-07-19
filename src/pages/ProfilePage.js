@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiMail, FiEdit3, FiSave, FiX, FiEye, FiEyeOff, FiCamera, FiSettings, FiShield, FiCalendar } from 'react-icons/fi';
+import { FiUser, FiMail, FiEdit3, FiSave, FiX, FiEye, FiEyeOff, FiCamera, FiSettings, FiShield, FiCalendar, FiVideo, FiPlay } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -10,9 +10,17 @@ const ProfilePage = () => {
   const { user, login } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [videosLoading, setVideosLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Video related states
+  const [userVideos, setUserVideos] = useState([]);
+  const [videoStats, setVideoStats] = useState({
+    totalVideos: 0,
+    totalViews: 0
+  });
   
   const [formData, setFormData] = useState({
     username: '',
@@ -30,8 +38,42 @@ const ProfilePage = () => {
         bio: user.bio || '',
         password: ''
       });
+      
+      // Fetch user videos
+      fetchUserVideos();
     }
   }, [user]);
+
+  const fetchUserVideos = async () => {
+    if (!user?.id) return;
+
+    setVideosLoading(true);
+    try {
+      const response = await axios.get(`${baseUrl}/api/video/getVideoByUserID/${user.id}`, {
+        timeout: 10000
+      });
+
+      if (response.status === 200 && response.data.videos) {
+        setUserVideos(response.data.videos);
+        
+        // Calculate stats
+        const totalVideos = response.data.videos.length;
+        const totalViews = response.data.videos.reduce((sum, video) => sum + (video.views || 0), 0);
+        
+        setVideoStats({
+          totalVideos,
+          totalViews
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user videos:', error);
+      if (error.response?.status !== 404) {
+        setError('Failed to load your videos');
+      }
+    } finally {
+      setVideosLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,7 +108,6 @@ const ProfilePage = () => {
         bio: formData.bio.trim()
       };
 
-      // Only include password if it's provided
       if (formData.password.trim()) {
         updateData.password = formData.password;
       }
@@ -79,23 +120,19 @@ const ProfilePage = () => {
       });
 
       if (response.status === 200) {
-        // Update user data in context
         const updatedUser = {
           ...user,
           username: formData.username.trim(),
           bio: formData.bio.trim()
         };
         
-        // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        // Update auth context
         const token = localStorage.getItem('token');
         login(token, updatedUser);
         
         setSuccess('Profile updated successfully!');
         setIsEditing(false);
-        setFormData({ ...formData, password: '' }); // Clear password field
+        setFormData({ ...formData, password: '' });
       }
     } catch (error) {
       console.error('Update error:', error);
@@ -122,6 +159,28 @@ const ProfilePage = () => {
     setIsEditing(false);
     setError('');
     setSuccess('');
+  };
+
+  const formatViews = (views) => {
+    if (views >= 1000000) {
+      return `${(views / 1000000).toFixed(1)}M`;
+    } else if (views >= 1000) {
+      return `${(views / 1000).toFixed(1)}K`;
+    }
+    return views.toString();
+  };
+
+  const formatDuration = (createdAt) => {
+    const now = new Date();
+    const videoDate = new Date(createdAt);
+    const diffInMs = now - videoDate;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return '1 day ago';
+    if (diffInDays < 30) return `${diffInDays} days ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+    return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
   return (
@@ -159,7 +218,7 @@ const ProfilePage = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="max-w-2xl mx-auto"
+          className="max-w-6xl mx-auto"
         >
           
           {/* Header */}
@@ -167,247 +226,308 @@ const ProfilePage = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
               Profile Settings
             </h1>
-            <p className="text-gray-400">Manage your account information</p>
+            <p className="text-gray-400">Manage your account information and videos</p>
           </div>
 
-          {/* Profile Card */}
-          <div className="bg-gray-800/40 backdrop-blur-xl rounded-3xl border border-gray-600/40 overflow-hidden shadow-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            {/* Profile Header */}
-            <div className="relative bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 p-8 border-b border-gray-600/40">
-              {/* Profile Avatar */}
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
-                    <FiUser className="text-3xl text-white" />
-                  </div>
-                  <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center border-2 border-gray-600 hover:bg-gray-600 transition-colors">
-                    <FiCamera className="text-gray-300" size={14} />
-                  </button>
-                </div>
+            {/* Left Column - Profile Card */}
+            <div className="lg:col-span-2">
+              <div className="bg-gray-800/40 backdrop-blur-xl rounded-3xl border border-gray-600/40 overflow-hidden shadow-2xl">
                 
-                <div className="text-center sm:text-left flex-1">
-                  <h2 className="text-2xl font-bold text-gray-100">
-                    {user?.username || 'Username'}
-                  </h2>
-                  <p className="text-emerald-400 text-sm">{user?.email || 'email@example.com'}</p>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 justify-center sm:justify-start">
-                    <div className="flex items-center gap-1">
-                      <FiShield size={12} />
-                      <span className="capitalize">{user?.role || 'user'}</span>
+                {/* Profile Header */}
+                <div className="relative bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 p-8 border-b border-gray-600/40">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="relative">
+                      <div className="w-24 h-24 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                        <FiUser className="text-3xl text-white" />
+                      </div>
+                      <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center border-2 border-gray-600 hover:bg-gray-600 transition-colors">
+                        <FiCamera className="text-gray-300" size={14} />
+                      </button>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <FiCalendar size={12} />
-                      <span>Joined 2025</span>
+                    
+                    <div className="text-center sm:text-left flex-1">
+                      <h2 className="text-2xl font-bold text-gray-100">
+                        {user?.username || 'Username'}
+                      </h2>
+                      <p className="text-emerald-400 text-sm">{user?.email || 'email@example.com'}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 justify-center sm:justify-start">
+                        <div className="flex items-center gap-1">
+                          <FiShield size={12} />
+                          <span className="capitalize">{user?.role || 'user'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FiCalendar size={12} />
+                          <span>Joined 2025</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Edit Toggle Button */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-white font-medium transition-colors flex items-center gap-2"
-                >
-                  {isEditing ? <FiX size={16} /> : <FiEdit3 size={16} />}
-                  {isEditing ? 'Cancel' : 'Edit Profile'}
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Profile Content */}
-            <div className="p-8">
-              
-              {/* Status Messages */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="mb-6 p-4 bg-red-500/10 border border-red-400/30 rounded-xl text-red-300"
-                  >
-                    {error}
-                  </motion.div>
-                )}
-                
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="mb-6 p-4 bg-emerald-500/10 border border-emerald-400/30 rounded-xl text-emerald-300"
-                  >
-                    {success}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Form Fields */}
-              <div className="space-y-6">
-                
-                {/* Username Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Username
-                  </label>
-                  <div className="relative">
-                    <FiUser className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      disabled={!isEditing || loading}
-                      className={`w-full py-4 pl-12 pr-4 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 transition-all duration-300 ${
-                        isEditing 
-                          ? 'bg-gray-700/50 border border-gray-600/50 focus:ring-emerald-400/50 focus:border-emerald-400/50' 
-                          : 'bg-gray-700/30 border border-gray-600/30 cursor-not-allowed'
-                      } ${loading ? 'opacity-50' : ''}`}
-                      placeholder="Enter your username"
-                    />
-                  </div>
-                </div>
-
-                {/* Email Field (Read-only) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <FiMail className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                      type="email"
-                      value={formData.email}
-                      disabled
-                      className="w-full py-4 pl-12 pr-4 bg-gray-700/30 border border-gray-600/30 rounded-xl text-gray-100 cursor-not-allowed"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-                </div>
-
-                {/* Bio Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    disabled={!isEditing || loading}
-                    rows={3}
-                    className={`w-full py-4 px-4 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
-                      isEditing 
-                        ? 'bg-gray-700/50 border border-gray-600/50 focus:ring-emerald-400/50 focus:border-emerald-400/50' 
-                        : 'bg-gray-700/30 border border-gray-600/30 cursor-not-allowed'
-                    } ${loading ? 'opacity-50' : ''}`}
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-
-                {/* Password Field (Only visible when editing) */}
-                <AnimatePresence>
-                  {isEditing && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-white font-medium transition-colors flex items-center gap-2"
                     >
+                      {isEditing ? <FiX size={16} /> : <FiEdit3 size={16} />}
+                      {isEditing ? 'Cancel' : 'Edit Profile'}
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Profile Content */}
+                <div className="p-8">
+                  
+                  {/* Status Messages */}
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="mb-6 p-4 bg-red-500/10 border border-red-400/30 rounded-xl text-red-300"
+                      >
+                        {error}
+                      </motion.div>
+                    )}
+                    
+                    {success && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="mb-6 p-4 bg-emerald-500/10 border border-emerald-400/30 rounded-xl text-emerald-300"
+                      >
+                        {success}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Form Fields */}
+                  <div className="space-y-6">
+                    
+                    {/* Username Field */}
+                    <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        New Password (Optional)
+                        Username
                       </label>
                       <div className="relative">
-                        <FiShield className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
+                        <FiUser className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
                         <input
-                          type={showPassword ? 'text' : 'password'}
-                          name="password"
-                          value={formData.password}
+                          type="text"
+                          name="username"
+                          value={formData.username}
                           onChange={handleInputChange}
-                          disabled={loading}
-                          className={`w-full py-4 pl-12 pr-12 bg-gray-700/50 border border-gray-600/50 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all duration-300 ${loading ? 'opacity-50' : ''}`}
-                          placeholder="Enter new password (min 6 characters)"
+                          disabled={!isEditing || loading}
+                          className={`w-full py-4 pl-12 pr-4 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 transition-all duration-300 ${
+                            isEditing 
+                              ? 'bg-gray-700/50 border border-gray-600/50 focus:ring-emerald-400/50 focus:border-emerald-400/50' 
+                              : 'bg-gray-700/30 border border-gray-600/30 cursor-not-allowed'
+                          } ${loading ? 'opacity-50' : ''}`}
+                          placeholder="Enter your username"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={loading}
-                          className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                        >
-                          {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                        </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                    </div>
 
-              {/* Action Buttons */}
-              <AnimatePresence>
-                {isEditing && (
+                    {/* Email Field */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <FiMail className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                          type="email"
+                          value={formData.email}
+                          disabled
+                          className="w-full py-4 pl-12 pr-4 bg-gray-700/30 border border-gray-600/30 rounded-xl text-gray-100 cursor-not-allowed"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                    </div>
+
+                    {/* Bio Field */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Bio
+                      </label>
+                      <textarea
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleInputChange}
+                        disabled={!isEditing || loading}
+                        rows={3}
+                        className={`w-full py-4 px-4 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
+                          isEditing 
+                            ? 'bg-gray-700/50 border border-gray-600/50 focus:ring-emerald-400/50 focus:border-emerald-400/50' 
+                            : 'bg-gray-700/30 border border-gray-600/30 cursor-not-allowed'
+                        } ${loading ? 'opacity-50' : ''}`}
+                        placeholder="Tell us about yourself..."
+                      />
+                    </div>
+
+                    {/* Password Field */}
+                    <AnimatePresence>
+                      {isEditing && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            New Password (Optional)
+                          </label>
+                          <div className="relative">
+                            <FiShield className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              name="password"
+                              value={formData.password}
+                              onChange={handleInputChange}
+                              disabled={loading}
+                              className={`w-full py-4 pl-12 pr-12 bg-gray-700/50 border border-gray-600/50 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all duration-300 ${loading ? 'opacity-50' : ''}`}
+                              placeholder="Enter new password (min 6 characters)"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              disabled={loading}
+                              className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                            >
+                              {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <AnimatePresence>
+                    {isEditing && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="flex gap-4 mt-8"
+                      >
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleSave}
+                          disabled={loading}
+                          className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white font-semibold rounded-xl shadow-xl hover:from-emerald-700 hover:to-cyan-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <FiSave size={18} />
+                              Save Changes
+                            </>
+                          )}
+                        </motion.button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleCancel}
+                          disabled={loading}
+                          className="px-6 py-4 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-all duration-300 disabled:opacity-50"
+                        >
+                          Cancel
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Stats and Videos */}
+            <div className="space-y-6">
+              
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 gap-4">
+                {[
+                  { label: 'Videos Uploaded', value: videoStats.totalVideos, icon: FiVideo, color: 'text-emerald-400' },
+                  { label: 'Total Views', value: formatViews(videoStats.totalViews), icon: FiEye, color: 'text-cyan-400' },
+                  { label: 'Account Status', value: 'Active', icon: FiShield, color: 'text-blue-400' }
+                ].map((stat, index) => (
                   <motion.div
+                    key={index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="flex gap-4 mt-8"
+                    transition={{ delay: index * 0.1 + 0.3 }}
+                    className="p-4 bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-600/40 text-center"
                   >
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleSave}
-                      disabled={loading}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white font-semibold rounded-xl shadow-xl hover:from-emerald-700 hover:to-cyan-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <FiSave size={18} />
-                          Save Changes
-                        </>
-                      )}
-                    </motion.button>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleCancel}
-                      disabled={loading}
-                      className="px-6 py-4 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold rounded-xl transition-all duration-300 disabled:opacity-50"
-                    >
-                      Cancel
-                    </motion.button>
+                    <stat.icon className={`${stat.color} mx-auto mb-2`} size={20} />
+                    <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
+                    <div className="text-xs text-gray-400">{stat.label}</div>
                   </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+                ))}
+              </div>
 
-          {/* Additional Stats/Info Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-            {[
-              { label: 'Videos Uploaded', value: '0', icon: FiSettings, color: 'text-emerald-400' },
-              { label: 'Total Views', value: '0', icon: FiEye, color: 'text-cyan-400' },
-              { label: 'Account Status', value: 'Active', icon: FiShield, color: 'text-blue-400' }
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 + 0.3 }}
-                className="p-4 bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-600/40 text-center"
-              >
-                <stat.icon className={`${stat.color} mx-auto mb-2`} size={20} />
-                <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
-                <div className="text-xs text-gray-400">{stat.label}</div>
-              </motion.div>
-            ))}
+              {/* Recent Videos */}
+              <div className="bg-gray-800/40 backdrop-blur-xl rounded-2xl border border-gray-600/40 overflow-hidden">
+                <div className="p-6 border-b border-gray-600/40">
+                  <h3 className="text-lg font-semibold text-gray-100 mb-2">Your Videos</h3>
+                  <p className="text-sm text-gray-400">Recently uploaded videos</p>
+                </div>
+                
+                <div className="p-6">
+                  {videosLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
+                    </div>
+                  ) : userVideos.length > 0 ? (
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {userVideos.slice(0, 5).map((video) => (
+                        <motion.div
+                          key={video._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        >
+                          <div className="relative flex-shrink-0">
+                            <img
+                              src={video.thumbnailUrl}
+                              alt={video.title}
+                              className="w-16 h-12 object-cover rounded-lg"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+                              <FiPlay className="text-white" size={16} />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-gray-100 truncate">
+                              {video.title}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                              <span>{formatViews(video.views || 0)} views</span>
+                              <span>•</span>
+                              <span>{formatDuration(video.createdAt)}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FiVideo className="mx-auto mb-3 text-gray-500" size={32} />
+                      <p className="text-gray-400 text-sm">No videos uploaded yet</p>
+                      <p className="text-gray-500 text-xs mt-1">Start creating content to see your videos here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>
