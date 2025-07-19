@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { to: '/explore', icon: <FiCompass />, text: 'Explore' },
     { to: '/subscriptions', icon: <FiYoutube />, text: 'Subscriptions' },
     { to: '/upload', icon: <FiUploadCloud />, text: 'Upload' }, // <-- NEW LINK ADDED HERE
-    { to: '/settings', icon: <FiSettings />, text: 'Settings' },
+    // { to: '/settings', icon: <FiSettings />, text: 'Settings' },
   ];
 
   return (
