@@ -1,4 +1,4 @@
-// components/FeedPage.js
+// components/FeedPage.js - Updated with 3 cards per row on desktop
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlay, FiClock, FiTrendingUp, FiVideo, FiGrid, FiList, FiFilter, FiRefreshCw } from 'react-icons/fi';
@@ -29,7 +29,6 @@ const FeedPage = () => {
     fetchAllData();
   }, [userId]);
 
-  // ✅ FIXED: Use the correct endpoint and response structure
   const fetchPublicFeed = async () => {
     setIsLoading(true);
     setError('');
@@ -37,7 +36,6 @@ const FeedPage = () => {
     try {
       console.log('🚀 Fetching public videos...');
       
-      // Use the correct endpoint: /api/video/public-videos
       const response = await fetch(`${baseUrl}/api/video/public-videos`);
       const data = await response.json();
       
@@ -67,7 +65,7 @@ const FeedPage = () => {
     try {
       const historyUrl = `${baseUrl}/api/user/getUserHistory?userId=${userId}`;
       const feedUrl = `${baseUrl}/api/video/personalizedFeed?userId=${userId}`;
-      const allVideosUrl = `${baseUrl}/api/video/public-videos`; // ✅ FIXED: Use correct endpoint
+      const allVideosUrl = `${baseUrl}/api/video/public-videos`;
 
       console.log('Fetching from URLs:', { historyUrl, feedUrl, allVideosUrl });
 
@@ -89,7 +87,7 @@ const FeedPage = () => {
       // Process responses with better error handling
       let historyData = { history: [] };
       let feedData = { videos: [] };
-      let allVideosData = { publicVideos: [] }; // ✅ FIXED: Use correct property name
+      let allVideosData = { publicVideos: [] };
 
       if (historyResponse.ok) {
         try {
@@ -118,7 +116,7 @@ const FeedPage = () => {
       console.log('Parsed API responses:', { 
         historyCount: historyData.history?.length || 0,
         feedCount: feedData.videos?.length || 0,
-        allVideosCount: allVideosData.publicVideos?.length || 0 // ✅ FIXED: Use correct property
+        allVideosCount: allVideosData.publicVideos?.length || 0
       });
 
       // Process History videos
@@ -140,7 +138,7 @@ const FeedPage = () => {
         console.log('Processed history videos:', formattedHistory.length);
       }
 
-      // Process Personalized Feed videos
+      // Process Personalized Feed videos - FIXED
       if (feedData.videos && Array.isArray(feedData.videos)) {
         const formattedFeed = feedData.videos.map(video => ({
           id: video._id,
@@ -151,7 +149,7 @@ const FeedPage = () => {
             name: video.uploader?.username || 'Unknown',
             avatar: `https://i.pravatar.cc/40?u=${video.uploader?.username || video._id}`
           },
-          views: formatViews(video.views || 0),
+          views: formatViews(video.views || 0), // ✅ Use 'views' not 'viewsCount'
           duration: '10:45',
           uploadedAt: new Date(video.createdAt).toLocaleDateString()
         }));
@@ -159,7 +157,7 @@ const FeedPage = () => {
         console.log('Processed feed videos:', formattedFeed.length);
       }
 
-      // ✅ FIXED: Process All Videos from public-videos endpoint
+      // Process All Videos from public-videos endpoint
       if (allVideosData.publicVideos && Array.isArray(allVideosData.publicVideos)) {
         const formattedAllVideos = processAllVideos(allVideosData.publicVideos);
         setAllVideos(formattedAllVideos);
@@ -174,6 +172,7 @@ const FeedPage = () => {
     }
   };
 
+  // ✅ UPDATED: Fixed processAllVideos function
   const processAllVideos = (videosArray) => {
     return videosArray.map((video, index) => {
       console.log(`Processing video ${index}:`, video);
@@ -185,17 +184,39 @@ const FeedPage = () => {
         return null;
       }
 
+      // ✅ FIXED: Handle both data formats properly
+      let channelName = 'Unknown Creator';
+      let viewCount = 0;
+
+      // Check for uploaderUsername (from public-videos endpoint)
+      if (video.uploaderUsername) {
+        channelName = video.uploaderUsername;
+      }
+      // Check for uploader.username (from other endpoints)
+      else if (video.uploader?.username) {
+        channelName = video.uploader.username;
+      }
+
+      // Check for viewsCount (from public-videos endpoint)
+      if (video.viewsCount !== undefined) {
+        viewCount = video.viewsCount;
+      }
+      // Check for views (from other endpoints)
+      else if (video.views !== undefined) {
+        viewCount = video.views;
+      }
+
       const formattedVideo = {
         id: videoId.toString(),
         title: video.title || 'Untitled Video',
         thumbnail: video.thumbnailUrl || 'https://via.placeholder.com/320x180/374151/9CA3AF?text=Video+Thumbnail',
         videoUrl: video.videoUrl,
         channel: {
-          name: video.uploaderUsername || 'Unknown Creator',
-          id: video.uploaderId,
-          avatar: `https://i.pravatar.cc/40?u=${video.uploaderUsername || `user-${index}`}`
+          name: channelName,
+          id: video.uploaderId || video.uploader?._id,
+          avatar: `https://i.pravatar.cc/40?u=${channelName || `user-${index}`}`
         },
-        views: formatViews(video.viewsCount || 0),
+        views: formatViews(viewCount),
         duration: '8:20',
         uploadedAt: video.createdAt ? new Date(video.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
         tags: video.tags || [],
@@ -206,6 +227,9 @@ const FeedPage = () => {
       console.log(`Formatted video ${index}:`, { 
         id: formattedVideo.id, 
         title: formattedVideo.title,
+        channelName: formattedVideo.channel.name,
+        views: formattedVideo.views,
+        originalViews: viewCount,
         hasValidId: !!formattedVideo.id 
       });
       
@@ -214,12 +238,13 @@ const FeedPage = () => {
   };
 
   const formatViews = (views) => {
-    if (views >= 1000000) {
-      return `${(views / 1000000).toFixed(1)}M`;
-    } else if (views >= 1000) {
-      return `${(views / 1000).toFixed(1)}K`;
+    const numViews = Number(views) || 0;
+    if (numViews >= 1000000) {
+      return `${(numViews / 1000000).toFixed(1)}M`;
+    } else if (numViews >= 1000) {
+      return `${(numViews / 1000).toFixed(1)}K`;
     }
-    return views.toString();
+    return numViews.toString();
   };
 
   const getFilteredVideos = () => {
@@ -240,6 +265,21 @@ const FeedPage = () => {
     } else {
       fetchPublicFeed();
     }
+  };
+
+  // ✅ UPDATED: Function to get grid classes based on filter
+  const getGridClasses = () => {
+    if (viewMode === 'list') {
+      return 'grid-cols-1 max-w-4xl';
+    }
+    
+    // For history, use original 4-column layout
+    if (activeFilter === 'history') {
+      return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+    }
+    
+    // For "All Videos" and "For You", use 3-column layout on desktop
+    return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
   };
 
   const containerVariants = {
@@ -294,7 +334,7 @@ const FeedPage = () => {
             
             {/* Title */}
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+              <h1 className="text-5xl font-bold bg-white bg-clip-text text-transparent mb-2">
                 Discover Videos
               </h1>
               <p className="text-gray-400">Explore content tailored for you</p>
@@ -410,6 +450,7 @@ const FeedPage = () => {
               <span>{getFilteredVideos().length}</span>
               <span>videos</span>
             </div>
+           
           </div>
 
           {isLoading ? (
@@ -417,13 +458,9 @@ const FeedPage = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className={`grid gap-6 ${
-                viewMode === 'grid'
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                  : 'grid-cols-1'
-              }`}
+              className={`grid gap-6 ${getGridClasses()}`}
             >
-              {Array(8).fill(0).map((_, index) => (
+              {Array(viewMode === 'list' ? 6 : (activeFilter === 'history' ? 8 : 6)).fill(0).map((_, index) => (
                 <SkeletonCard key={index} />
               ))}
             </motion.div>
@@ -432,18 +469,18 @@ const FeedPage = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className={`grid gap-6 ${
-                viewMode === 'grid'
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                  : 'grid-cols-1 max-w-4xl'
-              }`}
+              className={`grid gap-6 ${getGridClasses()}`}
             >
               {getFilteredVideos().map((video, index) => (
                 <motion.div
                   key={video.id}
                   variants={itemVariants}
                   transition={{ delay: index * 0.05 }}
-                  className={viewMode === 'list' ? 'w-full' : ''}
+                  className={`${viewMode === 'list' ? 'w-full' : ''} ${
+                    (activeFilter === 'all' || activeFilter === 'recommended') && viewMode === 'grid'
+                      ? 'max-w-none' // Allow full width for 3-column layout
+                      : ''
+                  }`}
                 >
                   <VideoCard 
                     video={video} 
@@ -489,7 +526,11 @@ const FeedPage = () => {
               { label: 'Total Videos', value: allVideos.length, color: 'text-emerald-400' },
               { label: 'Recommended', value: feedVideos.length, color: 'text-cyan-400' },
               { label: 'Watch History', value: historyVideos.length, color: 'text-blue-400' },
-              { label: 'Active Filter', value: activeFilter, color: 'text-purple-400' }
+              { 
+                label: 'Layout', 
+                value: (activeFilter === 'all' || activeFilter === 'recommended') && viewMode === 'grid' ? '3-col' : '4-col', 
+                color: 'text-purple-400' 
+              }
             ].map((stat, index) => (
               <div key={index} className="p-4 bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-600/40 text-center">
                 <div className={`text-2xl font-bold ${stat.color}`}>
