@@ -176,7 +176,7 @@ const UploadPage = () => {
               <FiUploadCloud className="text-gray-100 text-2xl" />
             </motion.div>
             
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-white bg-clip-text text-transparent mb-2">
               Upload Video
             </h1>
             <p className="text-gray-400">Share your content with the world</p>

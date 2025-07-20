@@ -20,7 +20,7 @@ const ProtectedLayout = () => {
       <main className="w-full transition-all duration-300 lg:pl-64">
         {/* Add dark mode classes to the mobile header */}
         <header className="sticky top-0 z-10 flex items-center justify-between p-4 bg-white/80 dark:bg-[#2D303A]/80 backdrop-blur-sm lg:hidden">
-          <div className="text-xl font-bold text-red-500">NovaTube</div>
+          <div className="text-xl font-bold text-red-500">Veloura</div>
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-800 dark:text-white">
             <FiMenu size={24} />
           </button>

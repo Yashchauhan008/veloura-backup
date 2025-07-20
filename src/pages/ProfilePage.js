@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiMail, FiEdit3, FiSave, FiX, FiEye, FiEyeOff, FiCamera, FiSettings, FiShield, FiCalendar, FiVideo, FiPlay } from 'react-icons/fi';
+import { FiUser, FiMail, FiEdit3, FiSave, FiX, FiEye, FiEyeOff, FiCamera, FiSettings, FiShield, FiCalendar, FiVideo, FiPlay, FiTrash2, FiStar, FiMoreVertical, FiAward, FiLock } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -14,6 +14,10 @@ const ProfilePage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [deletingVideoId, setDeletingVideoId] = useState(null);
+  const [videoToDelete, setVideoToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [imageErrors, setImageErrors] = useState({}); // Track image load errors
   
   // Video related states
   const [userVideos, setUserVideos] = useState([]);
@@ -75,6 +79,84 @@ const ProfilePage = () => {
     }
   };
 
+  // Handle image load error
+  const handleImageError = (videoId) => {
+    setImageErrors(prev => ({
+      ...prev,
+      [videoId]: true
+    }));
+  };
+
+  // Check if video is restricted
+  const isVideoRestricted = (video) => {
+    // You can add your own logic here to determine if a video is restricted
+    // For example, check video.accessLevel or video.isRestricted
+    return video.accessLevel === 'private' || video.isRestricted || !video.thumbnailUrl;
+  };
+
+  // Get video display title
+  const getVideoTitle = (video) => {
+    if (isVideoRestricted(video)) {
+      return 'This is restricted';
+    }
+    return video.title || 'Untitled Video';
+  };
+
+  // ✅ Delete video functionality
+  const handleDeleteVideo = async (videoId) => {
+    setDeletingVideoId(videoId);
+    
+    try {
+      const response = await axios.delete(`${baseUrl}/api/user/delete/${videoId}?userId=${user.id}`, {
+        timeout: 10000
+      });
+
+      if (response.status === 200) {
+        // Remove video from local state
+        setUserVideos(prevVideos => prevVideos.filter(video => video._id !== videoId));
+        
+        // Update stats
+        const deletedVideo = userVideos.find(video => video._id === videoId);
+        if (deletedVideo) {
+          setVideoStats(prevStats => ({
+            totalVideos: prevStats.totalVideos - 1,
+            totalViews: prevStats.totalViews - (deletedVideo.views || 0)
+          }));
+        }
+        
+        setSuccess('Video deleted successfully!');
+        setShowDeleteConfirm(false);
+        setVideoToDelete(null);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      if (error.response?.status === 403) {
+        setError('You are not authorized to delete this video');
+      } else if (error.response?.status === 404) {
+        setError('Video not found');
+      } else {
+        setError('Failed to delete video. Please try again.');
+      }
+    } finally {
+      setDeletingVideoId(null);
+    }
+  };
+
+  // ✅ Confirm delete dialog
+  const confirmDelete = (video) => {
+    setVideoToDelete(video);
+    setShowDeleteConfirm(true);
+  };
+
+  // ✅ Handle premium upgrade
+  const handlePremiumUpgrade = () => {
+    // Add your premium upgrade logic here
+    alert('Premium upgrade feature coming soon!');
+  };
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError('');
@@ -133,6 +215,9 @@ const ProfilePage = () => {
         setSuccess('Profile updated successfully!');
         setIsEditing(false);
         setFormData({ ...formData, password: '' });
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
       console.error('Update error:', error);
@@ -212,6 +297,72 @@ const ProfilePage = () => {
         ))}
       </div>
 
+      {/* ✅ Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gray-800 rounded-2xl p-6 max-w-md w-full border border-gray-600/40"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <FiTrash2 className="text-red-400" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-100">Delete Video</h3>
+                  <p className="text-sm text-gray-400">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete "<span className="font-medium">{getVideoTitle(videoToDelete)}</span>"?
+              </p>
+              
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleDeleteVideo(videoToDelete._id)}
+                  disabled={deletingVideoId === videoToDelete?._id}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {deletingVideoId === videoToDelete?._id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 size={16} />
+                      Delete
+                    </>
+                  )}
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium rounded-xl transition-colors"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
       <div className="relative z-10 container mx-auto px-6 py-8">
         <motion.div 
@@ -223,7 +374,7 @@ const ProfilePage = () => {
           
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-white bg-clip-text text-transparent mb-2">
               Profile Settings
             </h1>
             <p className="text-gray-400">Manage your account information and videos</p>
@@ -248,9 +399,17 @@ const ProfilePage = () => {
                     </div>
                     
                     <div className="text-center sm:text-left flex-1">
-                      <h2 className="text-2xl font-bold text-gray-100">
-                        {user?.username || 'Username'}
-                      </h2>
+                      <div className="flex items-center gap-2 justify-center sm:justify-start">
+                        <h2 className="text-2xl font-bold text-gray-100">
+                          {user?.username || 'Username'}
+                        </h2>
+                        {user?.isPremium && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full">
+                            <FiStar size={12} className="text-white" />
+                            <span className="text-xs font-bold text-white">PRO</span>
+                          </div>
+                        )}
+                      </div>
                       <p className="text-emerald-400 text-sm">{user?.email || 'email@example.com'}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 justify-center sm:justify-start">
                         <div className="flex items-center gap-1">
@@ -264,15 +423,30 @@ const ProfilePage = () => {
                       </div>
                     </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setIsEditing(!isEditing)}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-white font-medium transition-colors flex items-center gap-2"
-                    >
-                      {isEditing ? <FiX size={16} /> : <FiEdit3 size={16} />}
-                      {isEditing ? 'Cancel' : 'Edit Profile'}
-                    </motion.button>
+                    <div className="flex gap-2">
+                      {!user?.isPremium && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handlePremiumUpgrade}
+                          className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 rounded-xl text-white font-medium transition-all flex items-center gap-2 shadow-lg"
+                        >
+                          <FiStar size={16} />
+                          <span className="hidden sm:inline">Upgrade to Pro</span>
+                          <span className="sm:hidden">Pro</span>
+                        </motion.button>
+                      )}
+
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsEditing(!isEditing)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-white font-medium transition-colors flex items-center gap-2"
+                      >
+                        {isEditing ? <FiX size={16} /> : <FiEdit3 size={16} />}
+                        {isEditing ? 'Cancel' : 'Edit Profile'}
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
 
@@ -367,42 +541,6 @@ const ProfilePage = () => {
                       />
                     </div>
 
-                    {/* Password Field */}
-                    <AnimatePresence>
-                      {isEditing && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            New Password (Optional)
-                          </label>
-                          <div className="relative">
-                            <FiShield className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" size={18} />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              name="password"
-                              value={formData.password}
-                              onChange={handleInputChange}
-                              disabled={loading}
-                              className={`w-full py-4 pl-12 pr-12 bg-gray-700/50 border border-gray-600/50 rounded-xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all duration-300 ${loading ? 'opacity-50' : ''}`}
-                              placeholder="Enter new password (min 6 characters)"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              disabled={loading}
-                              className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                            >
-                              {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                            </button>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
 
                   {/* Action Buttons */}
@@ -458,7 +596,7 @@ const ProfilePage = () => {
                 {[
                   { label: 'Videos Uploaded', value: videoStats.totalVideos, icon: FiVideo, color: 'text-emerald-400' },
                   { label: 'Total Views', value: formatViews(videoStats.totalViews), icon: FiEye, color: 'text-cyan-400' },
-                  { label: 'Account Status', value: 'Active', icon: FiShield, color: 'text-blue-400' }
+                  { label: 'Account Status', value: user?.isPremium ? 'Premium' : 'Free', icon: user?.isPremium ? FiStar : FiShield, color: user?.isPremium ? 'text-yellow-400' : 'text-blue-400' }
                 ].map((stat, index) => (
                   <motion.div
                     key={index}
@@ -488,35 +626,77 @@ const ProfilePage = () => {
                     </div>
                   ) : userVideos.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {userVideos.slice(0, 5).map((video) => (
-                        <motion.div
-                          key={video._id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer"
-                        >
-                          <div className="relative flex-shrink-0">
-                            <img
-                              src={video.thumbnailUrl}
-                              alt={video.title}
-                              className="w-16 h-12 object-cover rounded-lg"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
-                              <FiPlay className="text-white" size={16} />
+                      {userVideos.slice(0, 5).map((video) => {
+                        const isRestricted = isVideoRestricted(video);
+                        const hasImageError = imageErrors[video._id];
+                        
+                        return (
+                          <motion.div
+                            key={video._id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="group flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors"
+                          >
+                            <div className="relative flex-shrink-0">
+                              {isRestricted || hasImageError ? (
+                                // Show restricted placeholder
+                                <div className="w-16 h-12 bg-gray-600 rounded-lg flex items-center justify-center">
+                                  <FiLock className="text-gray-400" size={16} />
+                                </div>
+                              ) : (
+                                // Show actual thumbnail
+                                <>
+                                  <img
+                                    src={video.thumbnailUrl}
+                                    alt={video.title}
+                                    className="w-16 h-12 object-cover rounded-lg"
+                                    onError={() => handleImageError(video._id)}
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <FiPlay className="text-white" size={16} />
+                                  </div>
+                                </>
+                              )}
                             </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-gray-100 truncate">
-                              {video.title}
-                            </h4>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                              <span>{formatViews(video.views || 0)} views</span>
-                              <span>•</span>
-                              <span>{formatDuration(video.createdAt)}</span>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={`text-sm font-medium truncate ${
+                                isRestricted ? 'text-gray-400 italic' : 'text-gray-100'
+                              }`}>
+                                {getVideoTitle(video)}
+                              </h4>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                                {isRestricted ? (
+                                  <>
+                                    <FiLock size={10} />
+                                    <span>Restricted content</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>{formatViews(video.views || 0)} views</span>
+                                    <span>•</span>
+                                    <span>{formatDuration(video.createdAt)}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                            
+                            {/* ✅ Delete Button */}
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => confirmDelete(video)}
+                              disabled={deletingVideoId === video._id}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                            >
+                              {deletingVideoId === video._id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+                              ) : (
+                                <FiTrash2 size={16} />
+                              )}
+                            </motion.button>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8">

@@ -1,7 +1,7 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { ThemeProvider } from "./context/ThemeContext"; // Import ThemeProvider
+import { ThemeProvider } from "./context/ThemeContext";
 
 // Import all your components and pages
 import ProtectedLayout from "./components/ProtectedLayout";
@@ -16,19 +16,33 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import UploadPage from "./pages/UploadPage";
 import ProfilePage from "./pages/ProfilePage";
+import AdminNavbar from "./admin/AdminNavbar";
+import AdminDashboard from "./admin/DashboardPage";
+import AdminProfile from "./admin/AdminProfile";
+import UserPage from "./admin/UserPage";
+import VideosPage from "./admin/VideosPage";
+
+// Admin Layout Component that renders navbar and child routes
+const AdminLayout = () => {
+  return (
+    <div>
+      <AdminNavbar />
+      <Outlet /> {/* This renders child routes */}
+    </div>
+  );
+};
 
 function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        {" "}
-        {/* Wrap the app with the ThemeProvider */}
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegistrationForm />} />
+
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<ProtectedLayout />}>
@@ -41,11 +55,29 @@ function App() {
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
             </Route>
+
+            {/* Admin Routes with nested structure */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} /> {/* /admin */}
+              <Route path="dashboard" element={<AdminDashboard />} />
+               <Route path="profile" element={<AdminProfile />} />
+                 <Route path="users" element={<UserPage />} /> {/* /admin/dashboard */}
+                 <Route path="videos" element={<VideosPage />} />
+              {/* Future admin routes can be added here:
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="videos" element={<AdminVideosPage />} />
+              */}
+            </Route>
+
+            {/* 404 Route */}
             <Route
               path="*"
               element={
-                <div>
-                  <h2>404 | Page Not Found</h2>
+                <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold text-white mb-4">404</h2>
+                    <p className="text-gray-400">Page Not Found</p>
+                  </div>
                 </div>
               }
             />

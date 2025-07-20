@@ -48,6 +48,11 @@ const LoginPage = () => {
     return true;
   };
 
+  // Admin credentials check
+  const isAdminCredentials = (email, password) => {
+    return email === 'admin@gmail.com' && password === 'admin@123';
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     
@@ -61,6 +66,30 @@ const LoginPage = () => {
     try {
       console.log('Making request to:', `${baseUrl}/api/user/login`);
       
+      // Check for admin credentials first
+      if (isAdminCredentials(formData.email.trim(), formData.password)) {
+        // For admin, create a mock user object or use a special admin user
+        const adminUser = {
+          id: 'admin-id',
+          username: 'Admin',
+          email: formData.email,
+          role: 'admin'
+        };
+        
+        // Create a token (you might want to generate a proper token)
+        const adminToken = 'admin-token-' + Date.now();
+        
+        localStorage.setItem('token', adminToken);
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        
+        login(adminToken, adminUser);
+        
+        // Navigate to admin dashboard
+        navigate('/admin');
+        return;
+      }
+      
+      // For regular users, proceed with API call
       const response = await axios.post(`${baseUrl}/api/user/login`, {
         email: formData.email.trim(),
         password: formData.password
@@ -78,6 +107,8 @@ const LoginPage = () => {
         localStorage.setItem('user', JSON.stringify(user));
         
         login(token, user);
+        
+        // Navigate to regular dashboard
         navigate('/dashboard');
       }
     } catch (error) {
@@ -210,6 +241,18 @@ const LoginPage = () => {
             <p className="text-gray-400 text-sm mt-2">Sign in to continue to Veloura</p>
           </motion.div>
         </div>
+
+        {/* Admin Login Info (Optional - Remove in production) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 text-center"
+        >
+          <p className="text-blue-300 text-sm">
+            <strong>Admin Access:</strong> kirtan@gmail.com / kirtan@123
+          </p>
+        </motion.div>
 
         {/* Error Message */}
         <AnimatePresence>
