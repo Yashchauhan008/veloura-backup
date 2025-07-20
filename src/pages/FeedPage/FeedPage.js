@@ -514,33 +514,6 @@ const FeedPage = () => {
           )}
         </motion.section>
 
-        {/* Stats Bar */}
-        {!isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4"
-          >
-            {[
-              { label: 'Total Videos', value: allVideos.length, color: 'text-emerald-400' },
-              { label: 'Recommended', value: feedVideos.length, color: 'text-cyan-400' },
-              { label: 'Watch History', value: historyVideos.length, color: 'text-blue-400' },
-              { 
-                label: 'Layout', 
-                value: (activeFilter === 'all' || activeFilter === 'recommended') && viewMode === 'grid' ? '3-col' : '4-col', 
-                color: 'text-purple-400' 
-              }
-            ].map((stat, index) => (
-              <div key={index} className="p-4 bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-600/40 text-center">
-                <div className={`text-2xl font-bold ${stat.color}`}>
-                  {typeof stat.value === 'string' ? stat.value : stat.value}
-                </div>
-                <div className="text-xs text-gray-400 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </motion.div>
-        )}
       </div>
     </div>
   );
