@@ -283,8 +283,9 @@ const UploadPage = () => {
                       disabled={uploading}
                       className="w-full py-4 pl-12 pr-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all duration-300 appearance-none disabled:opacity-50"
                     >
-                      <option value="public" className="bg-gray-800">Public - Anyone can view</option>
-                      <option value="private" className="bg-gray-800">Private - Only you can view</option>
+                      <option value="public" className="bg-gray-800">Public</option>
+                      <option value="private" className="bg-gray-800">Private</option>
+                       <option value="premium" className="bg-gray-800">premium</option>
                     </select>
                   </div>
                 </div>

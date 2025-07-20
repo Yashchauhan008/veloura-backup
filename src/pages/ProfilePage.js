@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiMail, FiEdit3, FiSave, FiX, FiEye, FiEyeOff, FiCamera, FiSettings, FiShield, FiCalendar, FiVideo, FiPlay, FiTrash2, FiStar, FiMoreVertical, FiAward, FiLock } from 'react-icons/fi';
+import { FiUser, FiMail, FiEdit3, FiSave, FiX, FiEye, FiEyeOff, FiCamera, FiSettings, FiShield, FiCalendar, FiVideo, FiPlay, FiTrash2, FiStar, FiMoreVertical, FiAward, FiLock, FiCheck, FiGift } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -11,13 +11,15 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [videosLoading, setVideosLoading] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [deletingVideoId, setDeletingVideoId] = useState(null);
   const [videoToDelete, setVideoToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [imageErrors, setImageErrors] = useState({}); // Track image load errors
+  const [imageErrors, setImageErrors] = useState({});
+  const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   
   // Video related states
   const [userVideos, setUserVideos] = useState([]);
@@ -89,8 +91,6 @@ const ProfilePage = () => {
 
   // Check if video is restricted
   const isVideoRestricted = (video) => {
-    // You can add your own logic here to determine if a video is restricted
-    // For example, check video.accessLevel or video.isRestricted
     return video.accessLevel === 'private' || video.isRestricted || !video.thumbnailUrl;
   };
 
@@ -112,10 +112,8 @@ const ProfilePage = () => {
       });
 
       if (response.status === 200) {
-        // Remove video from local state
         setUserVideos(prevVideos => prevVideos.filter(video => video._id !== videoId));
         
-        // Update stats
         const deletedVideo = userVideos.find(video => video._id === videoId);
         if (deletedVideo) {
           setVideoStats(prevStats => ({
@@ -128,7 +126,6 @@ const ProfilePage = () => {
         setShowDeleteConfirm(false);
         setVideoToDelete(null);
 
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
@@ -145,16 +142,65 @@ const ProfilePage = () => {
     }
   };
 
-  // ✅ Confirm delete dialog
+  // Confirm delete dialog
   const confirmDelete = (video) => {
     setVideoToDelete(video);
     setShowDeleteConfirm(true);
   };
 
-  // ✅ Handle premium upgrade
-  const handlePremiumUpgrade = () => {
-    // Add your premium upgrade logic here
-    alert('Premium upgrade feature coming soon!');
+  // ✅ Handle premium upgrade - Updated to use backend API
+  const handlePremiumUpgrade = async () => {
+    if (!user?.id) {
+      setError('User not found');
+      return;
+    }
+
+    setPremiumLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.put(`${baseUrl}/api/user/update-premium/${user.id}`, {}, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000
+      });
+
+      if (response.status === 200) {
+        // Update user data in localStorage and context
+        const updatedUser = {
+          ...user,
+          isPremiumUser: true, // Backend uses isPremiumUser
+          isPremium: true      // Frontend uses isPremium
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        const token = localStorage.getItem('token');
+        login(token, updatedUser);
+
+        setSuccess('🎉 Congratulations! You are now a Premium user!');
+        setShowPremiumSuccess(true);
+
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setSuccess('');
+          setShowPremiumSuccess(false);
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Premium upgrade error:', error);
+      
+      if (error.response) {
+        setError(error.response.data.message || 'Premium upgrade failed');
+      } else if (error.request) {
+        setError('Cannot connect to server. Please try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setPremiumLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -216,7 +262,6 @@ const ProfilePage = () => {
         setIsEditing(false);
         setFormData({ ...formData, password: '' });
 
-        // Clear success message after 3 seconds
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error) {
@@ -268,6 +313,9 @@ const ProfilePage = () => {
     return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
+  // Check if user is premium (handle both isPremium and isPremiumUser)
+  const isUserPremium = user?.isPremium || user?.isPremiumUser;
+
   return (
     <div className="min-h-screen bg-[#2D303A] text-gray-100 relative overflow-hidden">
       
@@ -297,7 +345,46 @@ const ProfilePage = () => {
         ))}
       </div>
 
-      {/* ✅ Delete Confirmation Modal */}
+      {/* ✅ Premium Success Animation */}
+      <AnimatePresence>
+        {showPremiumSuccess && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-3xl p-8 max-w-md w-full text-center"
+            >
+              <motion.div
+                animate={{ 
+                  rotate: [0, 10, -10, 0],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ 
+                  duration: 0.5,
+                  repeat: 2
+                }}
+              >
+                <FiGift size={64} className="text-yellow-400 mx-auto mb-4" />
+              </motion.div>
+              <h2 className="text-2xl font-bold text-yellow-400 mb-2">Welcome to Premium!</h2>
+              <p className="text-gray-200 mb-4">You now have access to all premium features!</p>
+              <div className="flex items-center justify-center gap-2 text-yellow-400">
+                <FiStar size={16} />
+                <span className="font-semibold">Premium Activated</span>
+                <FiStar size={16} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div
@@ -390,7 +477,11 @@ const ProfilePage = () => {
                 <div className="relative bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 p-8 border-b border-gray-600/40">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="relative">
-                      <div className="w-24 h-24 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center shadow-lg ${
+                        isUserPremium 
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
+                          : 'bg-gradient-to-r from-emerald-500 to-cyan-500'
+                      }`}>
                         <FiUser className="text-3xl text-white" />
                       </div>
                       <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center border-2 border-gray-600 hover:bg-gray-600 transition-colors">
@@ -403,11 +494,15 @@ const ProfilePage = () => {
                         <h2 className="text-2xl font-bold text-gray-100">
                           {user?.username || 'Username'}
                         </h2>
-                        {user?.isPremium && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full">
-                            <FiStar size={12} className="text-white" />
-                            <span className="text-xs font-bold text-white">PRO</span>
-                          </div>
+                        {isUserPremium && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full shadow-lg"
+                          >
+                            <FiStar size={14} className="text-white" />
+                            <span className="text-sm font-bold text-white">PREMIUM</span>
+                          </motion.div>
                         )}
                       </div>
                       <p className="text-emerald-400 text-sm">{user?.email || 'email@example.com'}</p>
@@ -420,20 +515,36 @@ const ProfilePage = () => {
                           <FiCalendar size={12} />
                           <span>Joined 2025</span>
                         </div>
+                        {isUserPremium && (
+                          <div className="flex items-center gap-1 text-yellow-400">
+                            <FiStar size={12} />
+                            <span>Premium Member</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex gap-2">
-                      {!user?.isPremium && (
+                      {!isUserPremium && (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handlePremiumUpgrade}
-                          className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 rounded-xl text-white font-medium transition-all flex items-center gap-2 shadow-lg"
+                          disabled={premiumLoading}
+                          className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 rounded-xl text-white font-medium transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <FiStar size={16} />
-                          <span className="hidden sm:inline">Upgrade to Pro</span>
-                          <span className="sm:hidden">Pro</span>
+                          {premiumLoading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span className="hidden sm:inline">Upgrading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FiStar size={16} />
+                              <span className="hidden sm:inline">Upgrade to Pro</span>
+                              <span className="sm:hidden">Pro</span>
+                            </>
+                          )}
                         </motion.button>
                       )}
 
@@ -466,7 +577,7 @@ const ProfilePage = () => {
                       </motion.div>
                     )}
                     
-                    {success && (
+                    {success && !showPremiumSuccess && (
                       <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -596,14 +707,23 @@ const ProfilePage = () => {
                 {[
                   { label: 'Videos Uploaded', value: videoStats.totalVideos, icon: FiVideo, color: 'text-emerald-400' },
                   { label: 'Total Views', value: formatViews(videoStats.totalViews), icon: FiEye, color: 'text-cyan-400' },
-                  { label: 'Account Status', value: user?.isPremium ? 'Premium' : 'Free', icon: user?.isPremium ? FiStar : FiShield, color: user?.isPremium ? 'text-yellow-400' : 'text-blue-400' }
+                  { 
+                    label: 'Account Status', 
+                    value: isUserPremium ? 'Premium' : 'Free', 
+                    icon: isUserPremium ? FiStar : FiShield, 
+                    color: isUserPremium ? 'text-yellow-400' : 'text-blue-400' 
+                  }
                 ].map((stat, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 + 0.3 }}
-                    className="p-4 bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-600/40 text-center"
+                    className={`p-4 backdrop-blur-sm rounded-2xl border text-center ${
+                      isUserPremium && index === 2 
+                        ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/30' 
+                        : 'bg-gray-800/40 border-gray-600/40'
+                    }`}
                   >
                     <stat.icon className={`${stat.color} mx-auto mb-2`} size={20} />
                     <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
@@ -639,12 +759,10 @@ const ProfilePage = () => {
                           >
                             <div className="relative flex-shrink-0">
                               {isRestricted || hasImageError ? (
-                                // Show restricted placeholder
                                 <div className="w-16 h-12 bg-gray-600 rounded-lg flex items-center justify-center">
                                   <FiLock className="text-gray-400" size={16} />
                                 </div>
                               ) : (
-                                // Show actual thumbnail
                                 <>
                                   <img
                                     src={video.thumbnailUrl}
@@ -680,7 +798,6 @@ const ProfilePage = () => {
                               </div>
                             </div>
                             
-                            {/* ✅ Delete Button */}
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
