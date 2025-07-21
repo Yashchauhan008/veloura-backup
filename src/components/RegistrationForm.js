@@ -16,7 +16,7 @@ const RegistrationForm = () => {
     username: '',
     email: '',
     password: '',
-    role: 'user'
+    // role: 'user'
   });
 
   const handleInput = (e) => {
@@ -72,7 +72,7 @@ const RegistrationForm = () => {
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        role: formData.role
+        // role: formData.role
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -316,7 +316,7 @@ const RegistrationForm = () => {
                   transition={{ delay: 0.7 }}
                   className="relative"
                 >
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Account Type</label>
+                  {/* <label className="block text-sm font-medium text-gray-300 mb-2">Account Type</label>
                   <select 
                     name="role" 
                     value={formData.role}
@@ -326,7 +326,7 @@ const RegistrationForm = () => {
                   >
                     <option value="user" className="bg-gray-800">User</option>
                     <option value="admin" className="bg-gray-800">Admin</option>
-                  </select>
+                  </select> */}
                 </motion.div>
               </div>
 
