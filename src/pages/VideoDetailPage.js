@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FiPlay, 
-  FiEye, 
-  FiCalendar, 
-  FiUser, 
-  FiArrowLeft, 
-  FiMoreVertical, 
+import {
+  FiPlay,
+  FiEye,
+  FiCalendar,
+  FiUser,
+  FiArrowLeft,
+  FiMoreVertical,
   FiBookmark,
   FiFlag,
   FiMessageCircle,
   FiSend,
   FiHeart,
-  FiCornerUpLeft // ✅ Use this instead of FiReply
+  FiCornerUpLeft
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import VideoPlayerPopup from '../components/VideoPlayerPopup';
@@ -32,8 +32,7 @@ const VideoDetailPage = () => {
   const [showPlayer, setShowPlayer] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  
-  // Comment-related state
+
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
@@ -45,7 +44,7 @@ const VideoDetailPage = () => {
       if (!videoId) return;
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const url = `${baseUrl}/api/video/getVideoByID/${videoId}?userId=${userId || ''}`;
         const response = await fetch(url);
@@ -75,11 +74,11 @@ const VideoDetailPage = () => {
   const fetchComments = async () => {
     setIsLoadingComments(true);
     setCommentsError('');
-    
+
     try {
       const response = await fetch(`${baseUrl}/api/comment/${videoId}`);
       const data = await response.json();
-      
+
       if (response.ok) {
         setComments(data.comments || []);
       } else {
@@ -95,7 +94,7 @@ const VideoDetailPage = () => {
 
   const handlePostComment = async (e) => {
     e.preventDefault();
-    
+
     if (!newComment.trim()) return;
     if (!userId) {
       setCommentsError('Please log in to post a comment');
@@ -150,7 +149,7 @@ const VideoDetailPage = () => {
     const videoDate = new Date(createdAt);
     const diffInMs = now - videoDate;
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) return 'Today';
     if (diffInDays === 1) return '1 day ago';
     if (diffInDays < 30) return `${diffInDays} days ago`;
@@ -165,7 +164,7 @@ const VideoDetailPage = () => {
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
@@ -214,7 +213,7 @@ const VideoDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-transparent text-gray-100 relative overflow-hidden">
-      
+
       {/* Enhanced Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(4)].map((_, i) => (
@@ -260,7 +259,7 @@ const VideoDetailPage = () => {
       {/* Full Width Video Section */}
       <div className="relative px-6 pb-12">
         <div className="max-w-7xl mx-auto">
-          
+
           {/* Full Width Video Player */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -276,7 +275,7 @@ const VideoDetailPage = () => {
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-            
+
             {/* Play Button Overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.button
@@ -314,7 +313,7 @@ const VideoDetailPage = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-gray-100 mb-6 leading-tight text-center">
               {video.title}
             </h1>
-            
+
             {/* Video Meta Information */}
             <div className="flex flex-wrap items-center justify-center gap-6 mb-8">
               <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full">
@@ -323,14 +322,14 @@ const VideoDetailPage = () => {
                   {formatViews(video.views)} views
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-full">
                 <FiCalendar size={16} className="text-cyan-400" />
                 <span className="text-cyan-300 font-medium">
                   {formatDuration(video.createdAt)}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-full">
                 <FiUser size={16} className="text-blue-400" />
                 <span className="text-blue-300 font-medium">
@@ -351,7 +350,7 @@ const VideoDetailPage = () => {
                   <FiMessageCircle className="text-cyan-400" />
                   About this video
                 </h2>
-                
+
                 {video.description && (
                   <div className="space-y-4">
                     <p className={`text-gray-300 leading-relaxed text-lg ${showFullDescription ? '' : 'line-clamp-4'}`}>
@@ -368,7 +367,7 @@ const VideoDetailPage = () => {
                     )}
                   </div>
                 )}
-                
+
                 <div className="mt-8 pt-6 border-t border-gray-700/50">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                     <div className="text-center md:text-left">
@@ -413,7 +412,7 @@ const VideoDetailPage = () => {
                           {user?.username?.charAt(0).toUpperCase() || 'U'}
                         </span>
                       </div>
-                      
+
                       <div className="flex-1">
                         <textarea
                           value={newComment}
@@ -423,12 +422,12 @@ const VideoDetailPage = () => {
                           rows={3}
                           disabled={isPostingComment}
                         />
-                        
+
                         <div className="flex items-center justify-between mt-3">
                           <span className="text-xs text-gray-500">
                             {newComment.length}/500 characters
                           </span>
-                          
+
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
@@ -438,7 +437,7 @@ const VideoDetailPage = () => {
                             >
                               Cancel
                             </button>
-                            
+
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
@@ -498,7 +497,7 @@ const VideoDetailPage = () => {
                             {comment.user?.username?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         </div>
-                        
+
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <span className="font-semibold text-gray-200">
@@ -508,11 +507,11 @@ const VideoDetailPage = () => {
                               {formatCommentTime(comment.createdAt)}
                             </span>
                           </div>
-                          
+
                           <p className="text-gray-300 leading-relaxed mb-3">
                             {comment.content}
                           </p>
-                          
+
                           <div className="flex items-center gap-4">
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -522,7 +521,7 @@ const VideoDetailPage = () => {
                               <FiHeart size={14} />
                               <span className="text-xs">Like</span>
                             </motion.button>
-                            
+
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}

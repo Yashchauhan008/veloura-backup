@@ -32,9 +32,8 @@ const ExplorePage = () => {
   // Filter videos when search term or trending changes
   useEffect(() => {
     filterVideos();
-  }, [searchTerm, allVideos, showTrending]); // ✅ NEW: Added showTrending dependency
+  }, [searchTerm, allVideos, showTrending]); 
 
-  // ✅ UPDATED: Filter videos based on search and trending
   const filterVideos = () => {
     let filtered = [...allVideos];
 
@@ -49,7 +48,6 @@ const ExplorePage = () => {
       );
     }
 
-    // ✅ NEW: Apply trending filter (sort by highest view count)
     if (showTrending) {
       filtered = filtered
         .sort((a, b) => {
@@ -65,7 +63,6 @@ const ExplorePage = () => {
     console.log(`Filtered to ${filtered.length} videos (search: "${searchTerm}", trending: ${showTrending})`);
   };
 
-  // ✅ NEW: Extract numeric value from formatted view string
   const extractNumericViews = (viewString) => {
     if (!viewString) return 0;
     const numStr = viewString.toString().toLowerCase();
@@ -77,17 +74,14 @@ const ExplorePage = () => {
     return parseInt(numStr) || 0;
   };
 
-  // ✅ Handle search input
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  // ✅ NEW: Toggle trending filter
   const handleTrendingToggle = () => {
     setShowTrending(!showTrending);
   };
 
-  // ✅ Copied from FeedPage
   const fetchPublicFeed = async () => {
     setIsLoading(true);
     setError('');
@@ -117,8 +111,6 @@ const ExplorePage = () => {
       setIsLoading(false);
     }
   };
-
-  // ✅ Copied from FeedPage - Only for all videos
   const fetchAllData = async () => {
     setIsLoading(true);
     setError('');
@@ -163,7 +155,6 @@ const ExplorePage = () => {
     }
   };
 
-  // ✅ Copied EXACTLY from FeedPage
   const processAllVideos = (videosArray) => {
     return videosArray.map((video, index) => {
       console.log(`Processing video ${index}:`, video);
@@ -175,7 +166,6 @@ const ExplorePage = () => {
         return null;
       }
 
-      // ✅ FIXED: Handle both data formats properly
       let channelName = 'Unknown Creator';
       let viewCount = 0;
 
@@ -229,7 +219,6 @@ const ExplorePage = () => {
     }).filter(video => video !== null);
   };
 
-  // ✅ Copied EXACTLY from FeedPage
   const formatViews = (views) => {
     const numViews = Number(views) || 0;
     if (numViews >= 1000000) {
@@ -248,7 +237,6 @@ const ExplorePage = () => {
     }
   };
 
-  // ✅ Use 3-column layout like FeedPage "All Videos"
   const getGridClasses = () => {
     if (viewMode === 'list') {
       return 'grid-cols-1 max-w-4xl';
@@ -329,7 +317,7 @@ const ExplorePage = () => {
                 {/* Controls */}
                 <div className="flex flex-wrap items-center gap-4">
                   
-                  {/* ✅ NEW: Trending Toggle Button */}
+                  {/* NEW: Trending Toggle Button */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -415,7 +403,7 @@ const ExplorePage = () => {
                   <span>{searchTerm || showTrending ? filteredVideos.length : allVideos.length}</span>
                   <span>videos</span>
                 </div>
-                {/* ✅ NEW: Trending indicator */}
+                {/* NEW: Trending indicator */}
                 {showTrending && !searchTerm && (
                   <div className="text-xs text-orange-400 bg-orange-500/20 px-2 py-1 rounded-full border border-orange-500/30">
                     🔥 Sorted by highest views
@@ -453,7 +441,7 @@ const ExplorePage = () => {
                         viewMode={viewMode}
                         showStats
                       />
-                      {/* ✅ NEW: Show trending rank for trending videos */}
+                      {/*NEW: Show trending rank for trending videos */}
                       {showTrending && !searchTerm && (
                         <div className="absolute top-2 left-2 z-10">
                           <span className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full shadow-lg">

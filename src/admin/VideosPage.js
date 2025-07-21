@@ -4,12 +4,13 @@ import {
   FiPlay, 
   FiVideo, 
   FiRefreshCw, 
-  FiTrash2,
+  FiLock,
   FiEye,
   FiCalendar,
   FiUser,
   FiAlertCircle,
-  FiCheck
+  FiCheck,
+  FiShield
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,9 +21,9 @@ const VideosPage = () => {
   const [allVideos, setAllVideos] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [deletingVideoId, setDeletingVideoId] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [videoToDelete, setVideoToDelete] = useState(null);
+  const [restrictingVideoId, setRestrictingVideoId] = useState(null);
+  const [videoToRestrict, setVideoToRestrict] = useState(null);
+  const [showRestrictConfirm, setShowRestrictConfirm] = useState(false);
   
   const { user } = useAuth();
   const userId = user?._id || user?.id;
@@ -36,7 +37,6 @@ const VideosPage = () => {
     fetchAllData();
   }, [userId]);
 
-  // ✅ Copied from ExplorePage
   const fetchPublicFeed = async () => {
     setIsLoading(true);
     setError('');
@@ -66,7 +66,6 @@ const VideosPage = () => {
     }
   };
 
-  // ✅ Copied from ExplorePage
   const fetchAllData = async () => {
     setIsLoading(true);
     setError('');
@@ -95,7 +94,6 @@ const VideosPage = () => {
         allVideosCount: allVideosData.publicVideos?.length || 0
       });
 
-      // Process All Videos from public-videos endpoint
       if (allVideosData.publicVideos && Array.isArray(allVideosData.publicVideos)) {
         const formattedAllVideos = processAllVideos(allVideosData.publicVideos);
         setAllVideos(formattedAllVideos);
@@ -110,7 +108,6 @@ const VideosPage = () => {
     }
   };
 
-  // ✅ Copied EXACTLY from ExplorePage
   const processAllVideos = (videosArray) => {
     return videosArray.map((video, index) => {
       console.log(`Processing video ${index}:`, video);
@@ -122,25 +119,18 @@ const VideosPage = () => {
         return null;
       }
 
-      // ✅ FIXED: Handle both data formats properly
       let channelName = 'Unknown Creator';
       let viewCount = 0;
 
-      // Check for uploaderUsername (from public-videos endpoint)
       if (video.uploaderUsername) {
         channelName = video.uploaderUsername;
-      }
-      // Check for uploader.username (from other endpoints)
-      else if (video.uploader?.username) {
+      } else if (video.uploader?.username) {
         channelName = video.uploader.username;
       }
 
-      // Check for viewsCount (from public-videos endpoint)
       if (video.viewsCount !== undefined) {
         viewCount = video.viewsCount;
-      }
-      // Check for views (from other endpoints)
-      else if (video.views !== undefined) {
+      } else if (video.views !== undefined) {
         viewCount = video.views;
       }
 
@@ -160,6 +150,7 @@ const VideosPage = () => {
         uploadedAt: video.createdAt ? new Date(video.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
         tags: video.tags || [],
         description: video.description || '',
+        accessLevel: video.accessLevel || 'public', // Track access level
         _originalData: video
       };
 
@@ -169,6 +160,7 @@ const VideosPage = () => {
         channelName: formattedVideo.channel.name,
         views: formattedVideo.views,
         originalViews: viewCount,
+        accessLevel: formattedVideo.accessLevel,
         hasValidId: !!formattedVideo.id 
       });
       
@@ -176,7 +168,6 @@ const VideosPage = () => {
     }).filter(video => video !== null);
   };
 
-  // ✅ Copied EXACTLY from ExplorePage
   const formatViews = (views) => {
     const numViews = Number(views) || 0;
     if (numViews >= 1000000) {
@@ -187,9 +178,10 @@ const VideosPage = () => {
     return numViews.toString();
   };
 
-  const handleDeleteVideo = async (videoId) => {
+  // ✅ NEW: Restrict video functionality
+  const handleRestrictVideo = async (videoId) => {
     if (!userId) {
-      setError('You must be logged in to delete videos');
+      setError('You must be logged in to restrict videos');
       return;
     }
 
@@ -197,11 +189,11 @@ const VideosPage = () => {
     const originalVideo = allVideos.find(v => v.id === videoId);
     const originalVideoId = originalVideo?._originalData?._id || videoId;
 
-    setDeletingVideoId(videoId);
+    setRestrictingVideoId(videoId);
     
     try {
-      const response = await fetch(`${baseUrl}/api/user/delete/${originalVideoId}?userId=${userId}`, {
-        method: 'DELETE',
+      const response = await fetch(`${baseUrl}/api/admin/restrict-video/${originalVideoId}`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -209,36 +201,44 @@ const VideosPage = () => {
       });
 
       if (response.ok) {
-        // Remove video from local state using the formatted video ID
-        setAllVideos(prevVideos => prevVideos.filter(video => video.id !== videoId));
+        const data = await response.json();
         
-        setSuccess('Video deleted successfully!');
-        setShowDeleteConfirm(false);
-        setVideoToDelete(null);
+        // Update video access level in local state
+        setAllVideos(prevVideos => 
+          prevVideos.map(video => 
+            video.id === videoId 
+              ? { ...video, accessLevel: 'restricted' }
+              : video
+          )
+        );
+        
+        setSuccess('Video access level updated to restricted successfully!');
+        setShowRestrictConfirm(false);
+        setVideoToRestrict(null);
         
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(''), 3000);
       } else {
         const errorData = await response.json();
         if (response.status === 403) {
-          setError('You are not authorized to delete this video');
+          setError('You are not authorized to restrict this video');
         } else if (response.status === 404) {
           setError('Video not found');
         } else {
-          setError(errorData.message || 'Failed to delete video');
+          setError(errorData.message || 'Failed to restrict video');
         }
       }
     } catch (error) {
-      console.error('Error deleting video:', error);
-      setError('Failed to delete video. Please try again.');
+      console.error('Error restricting video:', error);
+      setError('Failed to restrict video. Please try again.');
     } finally {
-      setDeletingVideoId(null);
+      setRestrictingVideoId(null);
     }
   };
 
-  const confirmDelete = (video) => {
-    setVideoToDelete(video);
-    setShowDeleteConfirm(true);
+  const confirmRestrict = (video) => {
+    setVideoToRestrict(video);
+    setShowRestrictConfirm(true);
   };
 
   const handleRefresh = () => {
@@ -267,7 +267,11 @@ const VideosPage = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-800/50 backdrop-blur-xl border border-gray-600/30 rounded-2xl p-4 hover:border-gray-500/50 transition-all duration-300 group"
+      className={`backdrop-blur-xl border rounded-2xl p-4 transition-all duration-300 group ${
+        video.accessLevel === 'restricted' 
+          ? 'bg-red-800/20 border-red-500/30 hover:border-red-400/50' 
+          : 'bg-gray-800/50 border-gray-600/30 hover:border-gray-500/50'
+      }`}
     >
       {/* Video Thumbnail */}
       <div className="relative mb-4 rounded-xl overflow-hidden">
@@ -277,6 +281,16 @@ const VideosPage = () => {
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         
+        {/* Access Level Badge */}
+        {video.accessLevel === 'restricted' && (
+          <div className="absolute top-2 left-2 z-10">
+            <div className="flex items-center gap-1 px-2 py-1 bg-red-500/80 rounded-full shadow-lg">
+              <FiLock size={12} className="text-white" />
+              <span className="text-xs font-bold text-white">RESTRICTED</span>
+            </div>
+          </div>
+        )}
+        
         {/* Play Button Overlay */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
@@ -284,25 +298,33 @@ const VideosPage = () => {
           </div>
         </div>
 
-        {/* Delete Button */}
+        {/* Restrict Button */}
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => confirmDelete(video)}
-          disabled={deletingVideoId === video.id}
-          className="absolute top-2 right-2 w-8 h-8 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          onClick={() => confirmRestrict(video)}
+          disabled={restrictingVideoId === video.id || video.accessLevel === 'restricted'}
+          className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+            video.accessLevel === 'restricted'
+              ? 'bg-gray-500/80 cursor-not-allowed'
+              : 'bg-orange-500/80 hover:bg-orange-500'
+          }`}
         >
-          {deletingVideoId === video.id ? (
+          {restrictingVideoId === video.id ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           ) : (
-            <FiTrash2 size={14} className="text-white" />
+            <FiLock size={14} className="text-white" />
           )}
         </motion.button>
       </div>
 
       {/* Video Info */}
       <div className="space-y-3">
-        <h3 className="text-white font-semibold text-lg line-clamp-2 group-hover:text-cyan-400 transition-colors">
+        <h3 className={`font-semibold text-lg line-clamp-2 transition-colors ${
+          video.accessLevel === 'restricted' 
+            ? 'text-red-300 group-hover:text-red-200' 
+            : 'text-white group-hover:text-cyan-400'
+        }`}>
           {video.title || 'Untitled Video'}
         </h3>
 
@@ -324,6 +346,21 @@ const VideosPage = () => {
             <FiCalendar size={14} />
             <span>{video.uploadedAt || 'Unknown'}</span>
           </div>
+        </div>
+
+        {/* Access Level Status */}
+        <div className="flex items-center gap-2">
+          {video.accessLevel === 'restricted' ? (
+            <div className="flex items-center gap-1 text-red-400 text-xs">
+              <FiLock size={12} />
+              <span>Restricted Access</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-green-400 text-xs">
+              <FiShield size={12} />
+              <span>Public Access</span>
+            </div>
+          )}
         </div>
 
         {/* Video Description */}
@@ -354,15 +391,15 @@ const VideosPage = () => {
     <div className="min-h-screen bg-gray-900 pt-24 pb-8">
       <div className="max-w-7xl mx-auto px-6">
         
-        {/* Delete Confirmation Modal */}
+        {/* Restrict Confirmation Modal */}
         <AnimatePresence>
-          {showDeleteConfirm && (
+          {showRestrictConfirm && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-              onClick={() => setShowDeleteConfirm(false)}
+              onClick={() => setShowRestrictConfirm(false)}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -372,36 +409,36 @@ const VideosPage = () => {
                 className="bg-gray-800 rounded-2xl p-6 max-w-md w-full border border-gray-600/40"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                    <FiTrash2 className="text-red-400" size={20} />
+                  <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center">
+                    <FiLock className="text-orange-400" size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-100">Delete Video</h3>
-                    <p className="text-sm text-gray-400">This action cannot be undone</p>
+                    <h3 className="text-lg font-semibold text-gray-100">Restrict Video Access</h3>
+                    <p className="text-sm text-gray-400">This will limit video accessibility</p>
                   </div>
                 </div>
                 
                 <p className="text-gray-300 mb-6">
-                  Are you sure you want to delete "<span className="font-medium">{videoToDelete?.title}</span>"?
+                  Are you sure you want to restrict access to "<span className="font-medium">{videoToRestrict?.title}</span>"?
                 </p>
                 
                 <div className="flex gap-3">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleDeleteVideo(videoToDelete.id)}
-                    disabled={deletingVideoId === videoToDelete?.id}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                    onClick={() => handleRestrictVideo(videoToRestrict.id)}
+                    disabled={restrictingVideoId === videoToRestrict?.id}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
                   >
-                    {deletingVideoId === videoToDelete?.id ? (
+                    {restrictingVideoId === videoToRestrict?.id ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Deleting...
+                        Restricting...
                       </>
                     ) : (
                       <>
-                        <FiTrash2 size={16} />
-                        Delete
+                        <FiLock size={16} />
+                        Restrict Access
                       </>
                     )}
                   </motion.button>
@@ -409,7 +446,7 @@ const VideosPage = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowDeleteConfirm(false)}
+                    onClick={() => setShowRestrictConfirm(false)}
                     className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium rounded-xl transition-colors"
                   >
                     Cancel
@@ -434,7 +471,7 @@ const VideosPage = () => {
                 All Videos
               </h1>
               <p className="text-gray-400">
-                Manage all platform videos
+                Manage video access levels and content
               </p>
               {error && (
                 <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>
@@ -476,7 +513,7 @@ const VideosPage = () => {
 
         {/* Stats */}
         <div className="bg-gray-800/50 backdrop-blur-xl border border-gray-600/30 rounded-2xl p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-400">
                 {allVideos.length}
@@ -485,9 +522,15 @@ const VideosPage = () => {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-green-400">
-                {allVideos.reduce((sum, video) => sum + (video.rawViews || 0), 0).toLocaleString()}
+                {allVideos.filter(video => video.accessLevel === 'public').length}
               </p>
-              <p className="text-gray-400 text-sm">Total Views</p>
+              <p className="text-gray-400 text-sm">Public Videos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-400">
+                {allVideos.filter(video => video.accessLevel === 'restricted').length}
+              </p>
+              <p className="text-gray-400 text-sm">Restricted Videos</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-400">

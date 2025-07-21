@@ -62,11 +62,7 @@ const VideoCard = ({ video, viewMode = 'grid', showStats = false, showProgress =
               <FiPlay className="text-white text-2xl ml-1" />
             </div>
           </div>
-          {video.duration && (
-            <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm">
-              {video.duration}
-            </div>
-          )}
+      
           {showProgress && (
             <div className="absolute bottom-0 left-0 w-full h-1.5 bg-gray-600/50">
               <div className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 w-1/3 rounded-full"></div>
@@ -127,6 +123,7 @@ const VideoCard = ({ video, viewMode = 'grid', showStats = false, showProgress =
       onClick={handleVideoClick}
       className="group bg-gradient-to-br from-gray-800/40 to-gray-700/40 backdrop-blur-xl rounded-2xl border border-gray-600/30 hover:border-emerald-400/50 transition-all duration-300 overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10"
     >
+      
       {/* Enhanced Thumbnail */}
       <div className="relative aspect-video overflow-hidden">
         <img

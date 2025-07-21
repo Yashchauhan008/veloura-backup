@@ -65,10 +65,8 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-[#2D303A] text-gray-100 relative overflow-hidden">
-      
-      {/* Animated Background Elements - Pure dark theme */}
+
       <div className="absolute inset-0 overflow-hidden">
-        {/* Dark accent circles with colored borders */}
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
@@ -92,7 +90,6 @@ const HomePage = () => {
           />
         ))}
 
-        {/* Large gradient orbs - Dark theme */}
         <motion.div
           className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-gray-800/30 to-slate-700/30 rounded-full filter blur-3xl"
           animate={{
@@ -119,7 +116,6 @@ const HomePage = () => {
           }}
         />
 
-        {/* Geometric shapes with colored accents */}
         <motion.div
           className="absolute top-1/3 left-1/5 w-24 h-24 border border-emerald-400/40 rounded-lg bg-gray-800/20"
           animate={{
@@ -147,14 +143,13 @@ const HomePage = () => {
       </div>
 
       {/* Main Content */}
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="flex flex-col items-center justify-center min-h-screen px-6 relative z-10"
       >
-        {/* Logo with dark theme */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="mb-8"
         >
@@ -163,13 +158,12 @@ const HomePage = () => {
             animate="float"
             className="w-32 h-24 bg-gradient-to-r from-gray-700 to-slate-600 rounded-3xl flex items-center justify-center shadow-2xl relative overflow-hidden border border-gray-500/40"
           >
-            {/* Play button - colored instead of white */}
+
             <div className="w-0 h-0 border-l-[24px] border-l-emerald-400 border-t-[15px] border-t-transparent border-b-[15px] border-b-transparent ml-2 drop-shadow-lg"></div>
-            
-            {/* Animated glow effect */}
+
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-cyan-400/10"
-              animate={{ 
+              animate={{
                 opacity: [0, 0.4, 0],
                 scale: [1, 1.03, 1]
               }}
@@ -178,15 +172,14 @@ const HomePage = () => {
           </motion.div>
         </motion.div>
 
-        {/* Main Heading - Dark theme with colored gradients */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="text-center mb-12 max-w-5xl"
         >
           <h1 className="text-5xl md:text-7xl font-bold mb-6 text-gray-200 leading-tight">
             Welcome to
           </h1>
-          <motion.h2 
+          <motion.h2
             className="text-6xl md:text-8xl font-black mb-8 bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent"
             animate={{
               backgroundPosition: ["0%", "100%", "0%"],
@@ -205,7 +198,7 @@ const HomePage = () => {
         </motion.div>
 
         {/* Feature highlights - Dark theme with colored icons */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="flex flex-wrap justify-center gap-6 mb-12"
         >
@@ -216,8 +209,8 @@ const HomePage = () => {
           ].map((feature, index) => (
             <motion.div
               key={index}
-              whileHover={{ 
-                scale: 1.06, 
+              whileHover={{
+                scale: 1.06,
                 y: -3,
                 boxShadow: "0 15px 30px rgba(0, 0, 0, 0.4)"
               }}
@@ -229,8 +222,7 @@ const HomePage = () => {
           ))}
         </motion.div>
 
-        {/* Action Buttons - Dark theme */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-6"
         >

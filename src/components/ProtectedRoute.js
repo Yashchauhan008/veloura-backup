@@ -6,11 +6,10 @@ const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    // If not authenticated, redirect to the login page
+
     return <Navigate to="/login" />;
   }
-
-  // If authenticated, render the child route content
+  
   return <Outlet />;
 };
 

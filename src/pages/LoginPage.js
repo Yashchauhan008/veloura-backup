@@ -250,7 +250,7 @@ const LoginPage = () => {
           className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 text-center"
         >
           <p className="text-blue-300 text-sm">
-            <strong>Admin Access:</strong> kirtan@gmail.com / kirtan@123
+            <strong>Admin Access:</strong> admin@gmail.com / admin@123
           </p>
         </motion.div>
 
@@ -269,9 +269,7 @@ const LoginPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email Input */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -294,7 +292,6 @@ const LoginPage = () => {
             </div>
           </motion.div>
 
-          {/* Password Input */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -325,7 +322,6 @@ const LoginPage = () => {
             </div>
           </motion.div>
 
-          {/* Login Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -350,7 +346,6 @@ const LoginPage = () => {
                 </>
               )}
               
-              {/* Button glow effect */}
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 opacity-0"
                 whileHover={{ opacity: 1 }}
@@ -360,14 +355,12 @@ const LoginPage = () => {
           </motion.div>
         </form>
 
-        {/* Additional Options */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
           className="space-y-6"
         >
-          {/* Forgot Password */}
           <div className="text-center">
             <Link 
               to="/forgot-password" 
@@ -377,7 +370,6 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-600/50"></div>
@@ -387,7 +379,6 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Sign Up Link */}
           <div className="text-center">
             <p className="text-gray-400 text-sm">
               Don't have an account?{' '}

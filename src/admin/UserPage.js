@@ -235,7 +235,7 @@ const UserPage = () => {
     <div className="min-h-screen bg-gray-900 pt-24 pb-8">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 mt-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">All Users</h1>

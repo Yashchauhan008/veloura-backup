@@ -43,7 +43,6 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegistrationForm />} />
 
-            {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<ProtectedLayout />}>
                 <Route path="/dashboard" element={<FeedPage />} />
@@ -56,17 +55,14 @@ function App() {
               </Route>
             </Route>
 
-            {/* Admin Routes with nested structure */}
+            {/* Admin Routes */} 
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} /> {/* /admin */}
+              <Route index element={<AdminDashboard />} /> 
               <Route path="dashboard" element={<AdminDashboard />} />
                <Route path="profile" element={<AdminProfile />} />
-                 <Route path="users" element={<UserPage />} /> {/* /admin/dashboard */}
+                 <Route path="users" element={<UserPage />} /> 
                  <Route path="videos" element={<VideosPage />} />
-              {/* Future admin routes can be added here:
-              <Route path="users" element={<AdminUsersPage />} />
-              <Route path="videos" element={<AdminVideosPage />} />
-              */}
+           
             </Route>
 
             {/* 404 Route */}

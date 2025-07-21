@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { FiMenu } from 'react-icons/fi';
-import Sidebar from '../pages/FeedPage/Sidebar'; // Adjust path if needed
+import Sidebar from '../pages/FeedPage/Sidebar';
 
 const ProtectedLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
