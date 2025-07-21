@@ -242,18 +242,6 @@ const LoginPage = () => {
           </motion.div>
         </div>
 
-        {/* Admin Login Info (Optional - Remove in production) */}
-        {/* <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 text-center"
-        >
-          <p className="text-blue-300 text-sm">
-            <strong>Admin Access:</strong> admin@gmail.com / admin@123
-          </p>
-        </motion.div> */}
-
         {/* Error Message */}
         <AnimatePresence>
           {error && (
